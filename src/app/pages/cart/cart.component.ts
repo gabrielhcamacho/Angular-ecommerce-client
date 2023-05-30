@@ -1,4 +1,6 @@
+import { HttpClient } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
+import { loadStripe } from '@stripe/stripe-js';
 import { Cart, CartItem } from 'src/app/models/cart.model';
 import { CartService } from 'src/app/services/cart.service';
 
@@ -9,21 +11,23 @@ import { CartService } from 'src/app/services/cart.service';
 })
 export class CartComponent implements OnInit {
 
-  cart: Cart = { items:[{
-    product: "https://via.placeholder.com/150",
-    name: 'Snicker',
-    price: 150,
-    quantity: 1,
-    id: 1,
-  },
-  {
-    product: "https://via.placeholder.com/150",
-    name: 'Snicker',
-    price: 152,
-    quantity: 2,
-    id: 2,
+  cart: Cart = {
+    items: [{
+      product: "https://via.placeholder.com/150",
+      name: 'Snicker',
+      price: 150,
+      quantity: 1,
+      id: 1,
+    },
+    {
+      product: "https://via.placeholder.com/150",
+      name: 'Snicker',
+      price: 152,
+      quantity: 2,
+      id: 2,
+    }
+    ]
   }
-]}
   dataSource: Array<CartItem> = []
   displayedColumns: Array<string> = [
     'product',
@@ -34,10 +38,10 @@ export class CartComponent implements OnInit {
     'action'
   ]
 
-  constructor(private cartService: CartService) { }
+  constructor(private cartService: CartService, private http: HttpClient) { }
 
   ngOnInit(): void {
-    this.cartService.cart.subscribe((_cart: Cart) => { 
+    this.cartService.cart.subscribe((_cart: Cart) => {
       this.cart = _cart;
       this.dataSource = this.cart.items;
     })
@@ -47,7 +51,7 @@ export class CartComponent implements OnInit {
     return this.cartService.getTotal(items)
   }
 
-  onClearCart(): void{
+  onClearCart(): void {
     this.cartService.clearCart()
   }
 
@@ -55,12 +59,25 @@ export class CartComponent implements OnInit {
     this.cartService.removeFromCart(item)
   }
 
-  onAddQuantity(item: CartItem): void{
+  onAddQuantity(item: CartItem): void {
     this.cartService.addToCart(item)
   }
 
-  onRemoveQuantity(item: CartItem): void{
+  onRemoveQuantity(item: CartItem): void {
     this.cartService.removeQuantity(item)
+  }
+
+  onCheckout(): void {
+    this.http
+      .post('http://localhost:4242/checkout', {
+        items: this.cart.items,
+      })
+      .subscribe(async (res: any) => {
+        let stripe = await loadStripe('pk_test_51JwxcMCm6l4IAwca1tgGL88L9JWVSNTsJ7KEolq2krIyq3oBOpBZUcXNMss3AlM33IbYnl5Sj9ezk1dXh9dS3KRr00Rz46yWWq');
+        stripe?.redirectToCheckout({
+          sessionId: res.id,
+        });
+      });
   }
 
 }
